@@ -1,23 +1,26 @@
 let handpose;
 let video;
 let hands = [];
+let prevHandPos = null;
 
 function preload() {
   handpose = ml5.handPose();
 }
 
 function setup() {
-  createCanvas(640, 480);
+  createCanvas(windowWidth, windowHeight);
   video = createCapture(VIDEO);
   video.size(640, 480);
   video.hide();
 
   handpose.detectStart(video, getHandsData);
+  
+  background(0); 
 }
 
 function draw() {
-  image(video, 0, 0, width, height);
-
+  // Ta inte bort tidigare ritningar 
+  
   for (let hand of hands) {
     let indexFinger = hand.index_finger_tip;
     let thumb = hand.thumb_tip;
@@ -25,11 +28,14 @@ function draw() {
     let centerX = (indexFinger.x + thumb.x) / 2;
     let centerY = (indexFinger.y + thumb.y) / 2;
 
-    let distance = dist(indexFinger.x, indexFinger.y, thumb.x, thumb.y);
-
-    noStroke();
-    fill(0, 0, 255);
-    ellipse(centerX, centerY, distance);
+    // Rita linje från föregående position till nuvarande position
+    if (prevHandPos != null) {
+      stroke(255, 100, 150); 
+      strokeWeight(3);
+      line(prevHandPos.x, prevHandPos.y, centerX, centerY);
+    }
+    
+    prevHandPos = { x: centerX, y: centerY };
   }
 }
 
