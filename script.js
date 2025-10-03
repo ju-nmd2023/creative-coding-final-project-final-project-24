@@ -3,6 +3,11 @@ let video;
 let hands = [];
 let prevHandPos = null;
 
+//https://chatgpt.com/share/68df9bc3-385c-800b-be39-8630fd09773c
+let colorPicker, brushSizeSlider, opacitySlider, clearButton;
+let presetColors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff', '#ffffff'];
+let colorButtons = [];
+
 function preload() {
   handpose = ml5.handPose();
 }
@@ -14,38 +19,64 @@ function setup() {
   video.hide();
 
   handpose.detectStart(video, getHandsData);
-  
-  background(0); 
+
+  // Skapa kontroller
+  colorPicker = createColorPicker('#ff6496');
+  colorPicker.position(10, 10);
+
+  brushSizeSlider = createSlider(2, 50, 5); 
+  brushSizeSlider.position(10, 40);
+
+  opacitySlider = createSlider(10, 255, 180); 
+  opacitySlider.position(10, 70);
+
+  clearButton = createButton('Rensa canvas');
+  clearButton.position(10, 100);
+  clearButton.mousePressed(() => background(0));
+
+  // När färgknappen eller färgväljaren ändras
+  colorPicker.input(() => prevHandPos = null);
+
+  for (let i = 0; i < presetColors.length; i++) {
+    let btn = createButton('');
+    btn.style('background-color', presetColors[i]);
+    btn.size(30, 30);
+    btn.position(10 + i * 35, 130);
+    btn.mousePressed(() => {
+      colorPicker.color(presetColors[i]);
+      prevHandPos = null; 
+    });
+    colorButtons.push(btn);
+  }
+
+  background(0);
 }
 
 function draw() {
-  // Ta inte bort tidigare ritningar 
-  
   for (let hand of hands) {
     let indexFinger = hand.index_finger_tip;
     let thumb = hand.thumb_tip;
 
-    let centerX = width - (indexFinger.x + thumb.x) / 2; // Inverterad x-led
+    let centerX = width - (indexFinger.x + thumb.x) / 2; 
     let centerY = (indexFinger.y + thumb.y) / 2;
 
-    // Rita partiklar från föregående position till nuvarande position
     if (prevHandPos != null) {
       let distance = dist(prevHandPos.x, prevHandPos.y, centerX, centerY);
-      let numParticles = int(distance / 5); // En partikel var 5:e pixel
+      let numParticles = int(distance / 5); 
       
       for (let i = 0; i <= numParticles; i++) {
         let t = i / numParticles;
         let x = lerp(prevHandPos.x, centerX, t);
         let y = lerp(prevHandPos.y, centerY, t);
         
-        // Lägg till lite slumpmässig variation
-        x += random(-3, 3);
-        y += random(-3, 3);
+        x += random(-2, 2);
+        y += random(-2, 2);
         
-        // Rita partikel
         noStroke();
-        fill(255, 100, 150, 180);
-        ellipse(x, y, random(2, 6));
+        let c = colorPicker.color();
+        c.setAlpha(opacitySlider.value());
+        fill(c);
+        ellipse(x, y, random(brushSizeSlider.value() / 2, brushSizeSlider.value()));
       }
     }
     
