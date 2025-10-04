@@ -5,8 +5,11 @@ let prevHandPos = null;
 
 //https://chatgpt.com/share/68df9bc3-385c-800b-be39-8630fd09773c
 let colorPicker, brushSizeSlider, opacitySlider, clearButton;
-let presetColors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff', '#ffffff'];
+let presetColors = ['#ff00ff', '#00ffff', '#ffffff'];
 let colorButtons = [];
+
+let synth, loop;
+let audioStarted = false;
 
 function preload() {
   handpose = ml5.handPose();
@@ -14,31 +17,26 @@ function preload() {
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
-
-  // --- Video & handpose ---
   video = createCapture(VIDEO);
   video.size(windowWidth, windowHeight);
   video.hide();
 
   handpose.detectStart(video, getHandsData);
 
-  // --- UI-element ---
   colorPicker = createColorPicker('#ff0000ff');
   colorPicker.position(10, 10);
 
-  brushSizeSlider = createSlider(2, 50, 5);
+  brushSizeSlider = createSlider(2, 50, 5); 
   brushSizeSlider.position(10, 40);
 
-  opacitySlider = createSlider(10, 255, 180);
+  opacitySlider = createSlider(10, 255, 180); 
   opacitySlider.position(10, 70);
 
   clearButton = createButton('Rensa canvas');
   clearButton.position(10, 100);
   clearButton.mousePressed(() => background(0));
-
   colorPicker.input(() => prevHandPos = null);
 
-  // Färgknappar
   for (let i = 0; i < presetColors.length; i++) {
     let btn = createButton('');
     btn.style('background-color', presetColors[i]);
@@ -46,41 +44,15 @@ function setup() {
     btn.position(10 + i * 35, 130);
     btn.mousePressed(() => {
       colorPicker.color(presetColors[i]);
-      prevHandPos = null;
+      prevHandPos = null; 
     });
     colorButtons.push(btn);
   }
 
+  initAudio();
+  
   background(0);
-
-  // --- Tone.js setup ---
-  try {
-    synth = new Tone.Synth({
-      oscillator: { type: "triangle" },
-      envelope: { attack: 0.05, decay: 0.1, sustain: 0.2, release: 0.3 }
-    });
-
-    filter = new Tone.Filter(800, "lowpass").toDestination();
-    synth.connect(filter);
-  } catch (e) {
-    console.error("Tone.js kunde inte initieras:", e);
-  }
-
-  // --- Ljudstart-knapp ---
-  let startButton = createButton('🎵 Starta ljud');
-  startButton.position(10, 170);
-  startButton.mousePressed(async () => {
-    try {
-      await Tone.start();
-      userStartAudio();
-      console.log('🔊 Ljud aktiverat!');
-      startButton.remove();
-    } catch (err) {
-      console.error('Kunde inte starta ljud:', err);
-    }
-  });
 }
-
 
 function draw() {
   for (let hand of hands) {
@@ -116,4 +88,63 @@ function draw() {
 
 function getHandsData(results) {
   hands = results;
+}
+
+let audioButton;
+
+async function initAudio() {
+  synth = new Tone.Synth({
+    oscillator: {
+      type: "sine"
+    },
+    envelope: {
+      attack: 0.1,
+      decay: 0.2,
+      sustain: 0.3,
+      release: 1
+    }
+  }).toDestination();
+  
+
+  synth.volume.value = -12; 
+  
+  audioButton = createButton('Starta Musik');
+  audioButton.position(150, 10);
+  audioButton.mousePressed(toggleAudio);
+}
+
+async function toggleAudio() {
+  if (!audioStarted) {
+    try {
+      await Tone.start();
+      console.log('Audio context started');
+      
+      synth.triggerAttackRelease('C4', '4n');
+      console.log('Test note played');
+      
+      loop = new Tone.Loop((time) => {
+        let notes = ['C4', 'D4', 'E4', 'G4', 'A4'];
+        let note = notes[Math.floor(Math.random() * notes.length)];
+        console.log('Playing note:', note);
+        synth.triggerAttackRelease(note, '8n', time);
+      }, '2n'); 
+      
+      Tone.Transport.start();
+      loop.start();
+      audioStarted = true;
+      
+      audioButton.html('Stoppa Musik');
+      
+    } catch (error) {
+      console.error('Error starting audio:', error);
+    }
+  } else {
+    if (loop) {
+      loop.stop();
+      loop.dispose();
+    }
+    Tone.Transport.stop();
+    audioStarted = false;
+    audioButton.html('Starta Musik');
+  }
 }
