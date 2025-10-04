@@ -14,29 +14,31 @@ function preload() {
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
+
+  // --- Video & handpose ---
   video = createCapture(VIDEO);
   video.size(windowWidth, windowHeight);
   video.hide();
 
   handpose.detectStart(video, getHandsData);
 
-  // Skapa kontroller
-  colorPicker = createColorPicker('#ff6496');
+  // --- UI-element ---
+  colorPicker = createColorPicker('#ff0000ff');
   colorPicker.position(10, 10);
 
-  brushSizeSlider = createSlider(2, 50, 5); 
+  brushSizeSlider = createSlider(2, 50, 5);
   brushSizeSlider.position(10, 40);
 
-  opacitySlider = createSlider(10, 255, 180); 
+  opacitySlider = createSlider(10, 255, 180);
   opacitySlider.position(10, 70);
 
   clearButton = createButton('Rensa canvas');
   clearButton.position(10, 100);
   clearButton.mousePressed(() => background(0));
 
-  // När färgknappen eller färgväljaren ändras
   colorPicker.input(() => prevHandPos = null);
 
+  // Färgknappar
   for (let i = 0; i < presetColors.length; i++) {
     let btn = createButton('');
     btn.style('background-color', presetColors[i]);
@@ -44,13 +46,41 @@ function setup() {
     btn.position(10 + i * 35, 130);
     btn.mousePressed(() => {
       colorPicker.color(presetColors[i]);
-      prevHandPos = null; 
+      prevHandPos = null;
     });
     colorButtons.push(btn);
   }
 
   background(0);
+
+  // --- Tone.js setup ---
+  try {
+    synth = new Tone.Synth({
+      oscillator: { type: "triangle" },
+      envelope: { attack: 0.05, decay: 0.1, sustain: 0.2, release: 0.3 }
+    });
+
+    filter = new Tone.Filter(800, "lowpass").toDestination();
+    synth.connect(filter);
+  } catch (e) {
+    console.error("Tone.js kunde inte initieras:", e);
+  }
+
+  // --- Ljudstart-knapp ---
+  let startButton = createButton('🎵 Starta ljud');
+  startButton.position(10, 170);
+  startButton.mousePressed(async () => {
+    try {
+      await Tone.start();
+      userStartAudio();
+      console.log('🔊 Ljud aktiverat!');
+      startButton.remove();
+    } catch (err) {
+      console.error('Kunde inte starta ljud:', err);
+    }
+  });
 }
+
 
 function draw() {
   for (let hand of hands) {
