@@ -125,11 +125,23 @@ function makeParticle(x, y) {
 function updateParticle(p) {
   let style = styleSlider.value();
 
+  // --- rörelse och brusflöde ---
   let n = noise(p.x * 0.002, p.y * 0.002, frameCount * 0.01);
   let angle = n * TWO_PI * 2.0;
   p.vx += cos(angle) * 0.1;
   p.vy += sin(angle) * 0.1;
 
+  // --- Vera Molnár-inspirerad geometrisk påverkan ---
+  if (frameCount % 200 < 100) {
+    // lockas mot närmaste "grid"-position för molnár-effekt
+    let gridSize = 40;
+    let targetX = round(p.x / gridSize) * gridSize;
+    let targetY = round(p.y / gridSize) * gridSize;
+    p.x = lerp(p.x, targetX, 0.02);
+    p.y = lerp(p.y, targetY, 0.02);
+  }
+
+  // --- uppdatera position ---
   p.x += p.vx;
   p.y += p.vy;
 
@@ -139,9 +151,11 @@ function updateParticle(p) {
   p.age++;
   p.life--;
 
+  // --- färg och transparens ---
   let alpha = map(p.life, 0, 200, 0, opacitySlider.value());
   let c = color(red(p.c), green(p.c), blue(p.c), alpha);
 
+  // --- olika visuella stilar beroende på slider ---
   if (style < 0.4) {
     noStroke();
     fill(c);
@@ -159,6 +173,7 @@ function updateParticle(p) {
     drawArtisticCircle(p.x, p.y, p.size, c);
   }
 }
+
 
 function drawArtisticCircle(x, y, size, c) {
   push();
