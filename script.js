@@ -7,7 +7,6 @@ let prevHandPos = null;
 let colorPicker, brushSizeSlider, opacitySlider, clearButton, styleSlider;
 let synth, loop;
 let audioStarted = false;
-let audioButton;
 
 let particles = [];
 let justReset = false;
@@ -52,6 +51,12 @@ function setup() {
   initAudio();
   background(0);
   blendMode(ADD);
+}
+
+function mousePressed() {
+  if (!audioStarted) {
+    startAudio();
+  }
 }
 
 function draw() {
@@ -217,26 +222,15 @@ async function initAudio() {
   }).toDestination();
 
   synth.volume.value = -12;
-
-  audioButton = createButton('Start Sound');
-  audioButton.position(150, 10);
-  audioButton.mousePressed(toggleAudio);
 }
 
-// Refrence for Tone.js implementation https://tonejs.github.io/
-async function toggleAudio() {
-  if (!audioStarted) {
-    try {
-      await Tone.start();
-      synth.triggerAttackRelease('C4', '4n');
-      audioStarted = true;
-      audioButton.html('Stop Sound');
-    } catch (error) {
-      console.error('Error starting audio:', error);
-    }
-  } else {
-    Tone.Transport.stop();
-    audioStarted = false;
-    audioButton.html('Start Sound');
+async function startAudio() {
+  try {
+    await Tone.start();
+    synth.triggerAttackRelease('C4', '4n');
+    audioStarted = true;
+    console.log('Audio started');
+  } catch (error) {
+    console.error('Error starting audio:', error);
   }
 }
